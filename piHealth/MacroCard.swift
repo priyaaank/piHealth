@@ -4,6 +4,8 @@ import SwiftUI
 struct MacroCard: View {
     let meal: Meal
     var onEdit: (() -> Void)? = nil
+    var onSync: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
 
     private var dayString: String {
         meal.createdAt.formatted(.dateTime.month(.abbreviated).day())
@@ -17,16 +19,30 @@ struct MacroCard: View {
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(.white.opacity(0.9))
                 Spacer()
-                Button {
-                    onEdit?()
-                } label: {
-                    Image(systemName: "pencil")
-                        .foregroundStyle(.white)
-                        .padding(8)
-                        .background(.white.opacity(0.18), in: Circle())
+                HStack(spacing: 8) {
+                    Button {
+                        onEdit?()
+                    } label: {
+                        Image(systemName: "pencil")
+                            .foregroundStyle(.white)
+                            .padding(8)
+                            .background(.white.opacity(0.18), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(onEdit == nil)
+
+                    if onDelete != nil {
+                        Button {
+                            onDelete?()
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundStyle(.white)
+                                .padding(8)
+                                .background(.white.opacity(0.18), in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .buttonStyle(.plain)
-                .disabled(onEdit == nil)
             }
 
             HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -60,6 +76,19 @@ struct MacroCard: View {
                 Label("Synced to Apple Health", systemImage: "heart.fill")
                     .font(.system(.caption2, design: .rounded))
                     .foregroundStyle(.white.opacity(0.85))
+            } else if onSync != nil {
+                Button {
+                    onSync?()
+                } label: {
+                    Label("Add to Apple Health", systemImage: "heart")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .background(.white, in: Capsule())
+                        .foregroundStyle(Theme.coral)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 2)
             }
         }
         .padding(18)

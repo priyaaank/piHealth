@@ -177,6 +177,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "pi Health";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Used to snap a photo of your meal for macro estimation.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Reads active energy to show how many calories you've burned today.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Saves the meals you log — energy and macros — to Apple Health.";
@@ -210,6 +211,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "pi Health";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Used to snap a photo of your meal for macro estimation.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Reads active energy to show how many calories you've burned today.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Saves the meals you log — energy and macros — to Apple Health.";

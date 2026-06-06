@@ -93,6 +93,41 @@ final class HealthKitManager: ObservableObject {
         }
     }
 
+    /// Zeroes out a meal's contribution in Apple Health by overwriting its samples
+    /// with 0 (same sync identifiers, bumped version). Used when deleting an entry.
+    func zeroOut(meal: Meal) async -> Bool {
+        guard isAvailable, meal.syncedToHealth else { return false }
+
+        let version = meal.healthSyncVersion + 1
+        var samples: [HKSample] = []
+        for (identifier, unit) in Self.nutritionUnits {
+            guard let type = HKObjectType.quantityType(forIdentifier: identifier) else { continue }
+            let quantity = HKQuantity(unit: unit, doubleValue: 0)
+            let metadata: [String: Any] = [
+                HKMetadataKeySyncIdentifier: "\(meal.id.uuidString)-\(identifier.rawValue)",
+                HKMetadataKeySyncVersion: version,
+                HKMetadataKeyFoodType: meal.name,
+            ]
+            samples.append(HKQuantitySample(
+                type: type,
+                quantity: quantity,
+                start: meal.createdAt,
+                end: meal.createdAt,
+                metadata: metadata
+            ))
+        }
+        guard !samples.isEmpty else { return false }
+
+        do {
+            try await store.save(samples)
+            meal.healthSyncVersion = version
+            return true
+        } catch {
+            lastError = error.localizedDescription
+            return false
+        }
+    }
+
     /// Active energy burned for a given day, used for the "burned" stat.
     func activeEnergyBurned(on date: Date) async -> Double {
         guard isAvailable,

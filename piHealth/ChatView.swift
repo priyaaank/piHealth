@@ -1,5 +1,11 @@
 import SwiftUI
 import SwiftData
+import UIKit
+
+/// Resigns the first responder app-wide, collapsing the keyboard.
+@MainActor func dismissKeyboard() {
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+}
 
 struct ChatView: View {
     @Environment(\.modelContext) private var context
@@ -8,12 +14,15 @@ struct ChatView: View {
 
     @Query(sort: \ChatMessage.createdAt) private var messages: [ChatMessage]
     @Query(sort: \Meal.createdAt) private var meals: [Meal]
+    @Query private var templates: [FoodTemplate]
 
     @State private var viewModel: ChatViewModel?
     @State private var draft = ""
     @State private var pickedImage: UIImage?
     @State private var showSettings = false
     @State private var editingMeal: Meal?
+    @State private var showQuickAdd = false
+    @State private var mealToDelete: Meal?
 
     private var consumed: Int { viewModel?.consumedToday(meals) ?? 0 }
     private var remaining: Int { max(0, settings.calorieGoal - consumed) }
@@ -28,7 +37,9 @@ struct ChatView: View {
             }
             Composer(text: $draft, pickedImage: $pickedImage,
                      isThinking: viewModel?.isThinking ?? false,
-                     onSend: send)
+                     onSend: send,
+                     showQuickAdd: !templates.isEmpty,
+                     onQuickAdd: { dismissKeyboard(); showQuickAdd = true })
             Text("AI estimates can be off. Please double-check important info.")
                 .font(.system(.caption2, design: .rounded))
                 .foregroundStyle(Theme.softText)
@@ -55,6 +66,25 @@ struct ChatView: View {
             }
             .environmentObject(health)
         }
+        .sheet(isPresented: $showQuickAdd) {
+            QuickAddSheet { template in
+                viewModel?.quickAdd(template: template)
+            }
+        }
+        .alert("Delete this entry?", isPresented: deleteAlertBinding, presenting: mealToDelete) { meal in
+            Button("Delete", role: .destructive) {
+                Task { await viewModel?.delete(meal: meal) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { meal in
+            Text(meal.syncedToHealth
+                 ? "This will remove “\(meal.name)” and zero out its macros in Apple Health."
+                 : "This will remove “\(meal.name)”.")
+        }
+    }
+
+    private var deleteAlertBinding: Binding<Bool> {
+        Binding(get: { mealToDelete != nil }, set: { if !$0 { mealToDelete = nil } })
     }
 
     // MARK: - Header
@@ -104,9 +134,12 @@ struct ChatView: View {
                             .padding(.top, 40)
                     }
                     ForEach(messages) { message in
-                        MessageRow(message: message) { meal in
-                            editingMeal = meal
-                        }
+                        MessageRow(
+                            message: message,
+                            onEditMeal: { editingMeal = $0 },
+                            onSyncMeal: { meal in Task { await viewModel?.syncToHealth(meal: meal) } },
+                            onDeleteMeal: { mealToDelete = $0 }
+                        )
                         .id(message.id)
                     }
                     if viewModel?.isThinking == true {
@@ -124,6 +157,9 @@ struct ChatView: View {
                     withAnimation { proxy.scrollTo("thinking", anchor: .bottom) }
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .contentShape(Rectangle())
+            .onTapGesture { dismissKeyboard() }
         }
     }
 
@@ -154,6 +190,8 @@ struct ChatView: View {
 private struct MessageRow: View {
     let message: ChatMessage
     var onEditMeal: (Meal) -> Void
+    var onSyncMeal: (Meal) -> Void
+    var onDeleteMeal: (Meal) -> Void
 
     var body: some View {
         if message.role == .user {
@@ -187,7 +225,12 @@ private struct MessageRow: View {
                         .foregroundStyle(Theme.darkGreen)
                 }
                 if let meal = message.meal {
-                    MacroCard(meal: meal) { onEditMeal(meal) }
+                    MacroCard(
+                        meal: meal,
+                        onEdit: { onEditMeal(meal) },
+                        onSync: { onSyncMeal(meal) },
+                        onDelete: { onDeleteMeal(meal) }
+                    )
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

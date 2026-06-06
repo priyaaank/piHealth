@@ -11,7 +11,7 @@ struct PiHealthApp: App {
 
     init() {
         do {
-            container = try ModelContainer(for: Meal.self, ChatMessage.self)
+            container = try ModelContainer(for: Meal.self, ChatMessage.self, FoodTemplate.self)
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }

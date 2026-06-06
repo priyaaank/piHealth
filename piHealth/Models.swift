@@ -51,6 +51,88 @@ final class Meal: Identifiable {
         self.syncedToHealth = false
         self.healthSyncVersion = 0
     }
+
+    /// Builds a fresh meal from a saved template — reuses cached macros, no LLM call.
+    init(template: FoodTemplate, createdAt: Date = Date()) {
+        self.id = UUID()
+        self.createdAt = createdAt
+        self.name = template.name
+        self.mealTypeRaw = template.mealTypeRaw
+        self.calories = template.calories
+        self.protein = template.protein
+        self.carbs = template.carbs
+        self.fat = template.fat
+        self.fiber = template.fiber
+        self.sugar = template.sugar
+        self.sodium = template.sodium
+        self.detail = template.detail
+        self.syncedToHealth = false
+        self.healthSyncVersion = 0
+    }
+}
+
+/// A reusable food the user logs often. Lets them re-add a meal with one tap,
+/// reusing the LLM's prior macro estimate instead of paying for another analysis.
+/// Upserted (keyed by `nameKey`) every time a meal is logged; ranked by `useCount`.
+@Model
+final class FoodTemplate: Identifiable {
+    var id: UUID
+    /// Lowercased, trimmed name used to match/dedupe templates.
+    var nameKey: String
+    var name: String
+    var mealTypeRaw: String
+
+    var calories: Double
+    var protein: Double
+    var carbs: Double
+    var fat: Double
+    var fiber: Double
+    var sugar: Double
+    var sodium: Double
+    var detail: String
+
+    var useCount: Int
+    var lastUsedAt: Date
+
+    var mealType: MealType {
+        get { MealType(rawValue: mealTypeRaw) ?? .snacks }
+        set { mealTypeRaw = newValue.rawValue }
+    }
+
+    init(meal: Meal) {
+        self.id = UUID()
+        self.nameKey = Self.key(for: meal.name)
+        self.name = meal.name
+        self.mealTypeRaw = meal.mealTypeRaw
+        self.calories = meal.calories
+        self.protein = meal.protein
+        self.carbs = meal.carbs
+        self.fat = meal.fat
+        self.fiber = meal.fiber
+        self.sugar = meal.sugar
+        self.sodium = meal.sodium
+        self.detail = meal.detail
+        self.useCount = 1
+        self.lastUsedAt = meal.createdAt
+    }
+
+    /// Refresh the cached macros to the most recent logged values for this food.
+    func refresh(from meal: Meal) {
+        self.name = meal.name
+        self.mealTypeRaw = meal.mealTypeRaw
+        self.calories = meal.calories
+        self.protein = meal.protein
+        self.carbs = meal.carbs
+        self.fat = meal.fat
+        self.fiber = meal.fiber
+        self.sugar = meal.sugar
+        self.sodium = meal.sodium
+        self.detail = meal.detail
+    }
+
+    static func key(for name: String) -> String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
 }
 
 /// A single chat turn. An assistant turn may carry a logged `meal` to render the macro card.

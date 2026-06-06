@@ -7,6 +7,8 @@ struct Composer: View {
     @Binding var pickedImage: UIImage?
     var isThinking: Bool
     var onSend: () -> Void
+    var showQuickAdd: Bool = false
+    var onQuickAdd: (() -> Void)? = nil
 
     @State private var photoItem: PhotosPickerItem?
     @FocusState private var focused: Bool
@@ -39,6 +41,14 @@ struct Composer: View {
             }
 
             HStack(spacing: 10) {
+                if showQuickAdd, let onQuickAdd {
+                    Button(action: onQuickAdd) {
+                        Image(systemName: "bolt.fill")
+                            .foregroundStyle(Theme.coral)
+                    }
+                    .accessibilityLabel("Quick add a favorite")
+                }
+
                 TextField("Type a meal or message…", text: $text, axis: .vertical)
                     .font(Theme.body)
                     .focused($focused)
