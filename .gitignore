@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Expo / native build output
+.expo/
+dist/
+ios/
+android/
+*.orig.*
+
+# Secrets / env
+.env
+.env.local
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
